@@ -1,7 +1,7 @@
 typeof navigator === "object" && (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define('Plyr', factory) :
-  (global = global || self, global.Plyr = factory());
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Plyr = factory());
 }(this, (function () { 'use strict';
 
   // Polyfill for creating CustomEvents on IE9/10/11
@@ -4408,7 +4408,7 @@ typeof navigator === "object" && (function (global, factory) {
     var checkIfURLSearchParamsSupported = function checkIfURLSearchParamsSupported() {
       try {
         var URLSearchParams = global.URLSearchParams;
-        return new URLSearchParams('?a=1').toString() === 'a=1' && typeof URLSearchParams.prototype.set === 'function';
+        return new URLSearchParams('?a=1').toString() === 'a=1' && typeof URLSearchParams.prototype.set === 'function' && typeof URLSearchParams.prototype.entries === 'function';
       } catch (e) {
         return false;
       }
@@ -4532,7 +4532,11 @@ typeof navigator === "object" && (function (global, factory) {
           anchorElement.href = anchorElement.href; // force href to refresh
         }
 
-        if (anchorElement.protocol === ':' || !/:/.test(anchorElement.href)) {
+        var inputElement = doc.createElement('input');
+        inputElement.type = 'url';
+        inputElement.value = url;
+
+        if (anchorElement.protocol === ':' || !/:/.test(anchorElement.href) || !inputElement.checkValidity() && !base) {
           throw new TypeError('Invalid URL');
         }
 
@@ -8534,7 +8538,7 @@ typeof navigator === "object" && (function (global, factory) {
           case 'timeupdate':
           case 'seeking':
           case 'seeked':
-            value = getPercentage(this.currentTime, this.duration); // Set seek range value only if it's a 'natural' time event
+            value = getPercentage(this.currentTime + this.offset, this.duration); // Set seek range value only if it's a 'natural' time event
 
             if (event.type === 'timeupdate') {
               controls.setRange.call(this, this.elements.inputs.seek, value);
@@ -8545,7 +8549,7 @@ typeof navigator === "object" && (function (global, factory) {
 
           case 'playing':
           case 'progress':
-            setProgress(this.elements.display.buffer, this.buffered * 100);
+            setProgress(this.elements.display.buffer, this.buffered * 100 + this.offset);
             break;
         }
       }
@@ -8637,7 +8641,7 @@ typeof navigator === "object" && (function (global, factory) {
       // Only invert if only one time element is displayed and used for both duration and currentTime
       var invert = !is$1.element(this.elements.display.duration) && this.config.invertTime; // Duration
 
-      controls.updateTimeDisplay.call(this, this.elements.display.currentTime, invert ? this.duration - this.currentTime : this.currentTime, invert); // Ignore updates while seeking
+      controls.updateTimeDisplay.call(this, this.elements.display.currentTime, invert ? this.duration - (this.currentTime + this.offset) : this.currentTime + this.offset, invert); // Ignore updates while seeking
 
       if (event && event.type === 'timeupdate' && this.media.seeking) {
         return;
@@ -8672,12 +8676,12 @@ typeof navigator === "object" && (function (global, factory) {
       var hasDuration = is$1.element(this.elements.display.duration); // If there's only one time display, display duration there
 
       if (!hasDuration && this.config.displayDuration && this.paused) {
-        controls.updateTimeDisplay.call(this, this.elements.display.currentTime, this.duration);
+        controls.updateTimeDisplay.call(this, this.elements.display.currentTime, this.duration - this.offset);
       } // If there's a duration element, update content
 
 
       if (hasDuration) {
-        controls.updateTimeDisplay.call(this, this.elements.display.duration, this.duration);
+        controls.updateTimeDisplay.call(this, this.elements.display.duration, this.duration - this.offset);
       } // Update the tooltip (if visible)
 
 
@@ -8824,19 +8828,19 @@ typeof navigator === "object" && (function (global, factory) {
           if (!is.element(this.elements.settings.panels.loop)) {
               return;
           }
-           const options = ['start', 'end', 'all', 'reset'];
+            const options = ['start', 'end', 'all', 'reset'];
           const list = this.elements.settings.panels.loop.querySelector('[role="menu"]');
-           // Show the pane and tab
+            // Show the pane and tab
           toggleHidden(this.elements.settings.buttons.loop, false);
           toggleHidden(this.elements.settings.panels.loop, false);
-           // Toggle the pane and tab
+            // Toggle the pane and tab
           const toggle = !is.empty(this.loop.options);
           controls.toggleMenuButton.call(this, 'loop', toggle);
-           // Empty the menu
+            // Empty the menu
           emptyElement(list);
-           options.forEach(option => {
+            options.forEach(option => {
               const item = createElement('li');
-               const button = createElement(
+                const button = createElement(
                   'button',
                   extend(getAttributesFromSelector(this.config.selectors.buttons.loop), {
                       type: 'button',
@@ -8845,11 +8849,11 @@ typeof navigator === "object" && (function (global, factory) {
                   }),
                   i18n.get(option, this.config)
               );
-               if (['start', 'end'].includes(option)) {
+                if (['start', 'end'].includes(option)) {
                   const badge = controls.createBadge.call(this, '00:00');
                   button.appendChild(badge);
               }
-               item.appendChild(button);
+                item.appendChild(button);
               list.appendChild(item);
           });
       }, */
@@ -14494,7 +14498,8 @@ typeof navigator === "object" && (function (global, factory) {
 
       this.touch = support.touch; // Set the media element
 
-      this.media = target; // String selector passed
+      this.media = target;
+      this.media.offset = 0; // String selector passed
 
       if (is$1.string(this.media)) {
         this.media = document.querySelectorAll(this.media);
@@ -15456,7 +15461,7 @@ typeof navigator === "object" && (function (global, factory) {
         this.media.loop = toggle; // Set default to be a true toggle
 
         /* const type = ['start', 'end', 'all', 'none', 'toggle'].includes(input) ? input : 'toggle';
-             switch (type) {
+              switch (type) {
                 case 'start':
                     if (this.config.loop.end && this.config.loop.end <= this.currentTime) {
                         this.config.loop.end = null;
@@ -15464,20 +15469,20 @@ typeof navigator === "object" && (function (global, factory) {
                     this.config.loop.start = this.currentTime;
                     // this.config.loop.indicator.start = this.elements.display.played.value;
                     break;
-                 case 'end':
+                  case 'end':
                     if (this.config.loop.start >= this.currentTime) {
                         return this;
                     }
                     this.config.loop.end = this.currentTime;
                     // this.config.loop.indicator.end = this.elements.display.played.value;
                     break;
-                 case 'all':
+                  case 'all':
                     this.config.loop.start = 0;
                     this.config.loop.end = this.duration - 2;
                     this.config.loop.indicator.start = 0;
                     this.config.loop.indicator.end = 100;
                     break;
-                 case 'toggle':
+                  case 'toggle':
                     if (this.config.loop.active) {
                         this.config.loop.start = 0;
                         this.config.loop.end = null;
@@ -15486,7 +15491,7 @@ typeof navigator === "object" && (function (global, factory) {
                         this.config.loop.end = this.duration - 2;
                     }
                     break;
-                 default:
+                  default:
                     this.config.loop.start = 0;
                     this.config.loop.end = null;
                     break;
@@ -15628,6 +15633,19 @@ typeof navigator === "object" && (function (global, factory) {
             toggled = _this$captions.toggled,
             currentTrack = _this$captions.currentTrack;
         return toggled ? currentTrack : -1;
+      }
+      /**
+       * Set the progress offset
+       * @param {Number} input - Offset of progress bar 
+       */
+
+    }, {
+      key: "offset",
+      set: function set(input) {
+        this.media.offset = input;
+      },
+      get: function get() {
+        return this.media.offset;
       }
       /**
        * Set the wanted language for captions

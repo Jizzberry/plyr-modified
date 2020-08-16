@@ -123,6 +123,11 @@ declare class Plyr {
   currentTrack: number;
 
   /**
+   * Sets offset for progress
+   */
+  offset: number;
+
+  /**
    * Gets or sets the preferred captions language for the player. The setter accepts an ISO twoletter language code. Support for the languages is dependent on the captions you include.
    * If your captions don't have any language data, or if you have multiple tracks with the same language, you may want to use currentTrack instead.
    */

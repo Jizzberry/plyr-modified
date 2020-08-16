@@ -50,6 +50,7 @@ class Plyr {
 
     // Set the media element
     this.media = target;
+    this.media.offset = 0;
 
     // String selector passed
     if (is.string(this.media)) {
@@ -963,6 +964,19 @@ class Plyr {
   get currentTrack() {
     const { toggled, currentTrack } = this.captions;
     return toggled ? currentTrack : -1;
+  }
+
+
+  /**
+   * Set the progress offset
+   * @param {Number} input - Offset of progress bar 
+   */
+  set offset(input) {
+    this.media.offset = input
+  }
+
+  get offset() {
+    return this.media.offset;
   }
 
   /**

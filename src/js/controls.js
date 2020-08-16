@@ -626,7 +626,7 @@ const controls = {
         case 'timeupdate':
         case 'seeking':
         case 'seeked':
-          value = getPercentage(this.currentTime, this.duration);
+          value = getPercentage(this.currentTime + this.offset, this.duration);
 
           // Set seek range value only if it's a 'natural' time event
           if (event.type === 'timeupdate') {
@@ -638,8 +638,7 @@ const controls = {
         // Check buffer status
         case 'playing':
         case 'progress':
-          setProgress(this.elements.display.buffer, this.buffered * 100);
-
+          setProgress(this.elements.display.buffer, this.buffered * 100 + this.offset);
           break;
 
         default:
@@ -747,7 +746,7 @@ const controls = {
     controls.updateTimeDisplay.call(
       this,
       this.elements.display.currentTime,
-      invert ? this.duration - this.currentTime : this.currentTime,
+      invert ? this.duration - (this.currentTime + this.offset) : this.currentTime + this.offset,
       invert,
     );
 
@@ -787,12 +786,12 @@ const controls = {
 
     // If there's only one time display, display duration there
     if (!hasDuration && this.config.displayDuration && this.paused) {
-      controls.updateTimeDisplay.call(this, this.elements.display.currentTime, this.duration);
+      controls.updateTimeDisplay.call(this, this.elements.display.currentTime, this.duration - this.offset);
     }
 
     // If there's a duration element, update content
     if (hasDuration) {
-      controls.updateTimeDisplay.call(this, this.elements.display.duration, this.duration);
+      controls.updateTimeDisplay.call(this, this.elements.display.duration, this.duration - this.offset);
     }
 
     // Update the tooltip (if visible)
@@ -1275,7 +1274,7 @@ const controls = {
     const defaultAttributes = { class: 'plyr__controls__item' };
 
     // Loop through controls in order
-    dedupe(is.array(this.config.controls) ? this.config.controls: []).forEach(control => {
+    dedupe(is.array(this.config.controls) ? this.config.controls : []).forEach(control => {
       // Restart button
       if (control === 'restart') {
         container.appendChild(createButton.call(this, 'restart', defaultAttributes));
